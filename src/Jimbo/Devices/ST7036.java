@@ -22,7 +22,6 @@ package Jimbo.Devices;
 import java.io.IOException;
 
 import com.pi4j.io.gpio.Pin;
-import com.pi4j.io.gpio.RaspiPin;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
@@ -54,6 +53,39 @@ public class ST7036
         
         // Configure register select pin
         rs = gpio.provisionDigitalOutputPin (reg_select);
+        
+        init ();
+    }
+    
+    public ST7036 (Pin reg_select, Pin reset_pin) throws IOException
+    {
+        GpioController gpio = GpioFactory.getInstance ();
+        
+        // Configure register select pin
+        rs = gpio.provisionDigitalOutputPin (reg_select);
+        
+        // Configure reset pin
+        GpioPinDigitalOutput reset = gpio.provisionDigitalOutputPin (reset_pin);
+        
+        // Reset the device
+        
+        try {
+            reset.low ();
+            Thread.sleep (1);
+            reset.high ();
+            Thread.sleep (1);
+        }
+        
+        catch (InterruptedException e) {
+            System.err.println ("Sleep interrupted!");
+        }
+        
+        init ();
+    }
+    
+    private void init () throws IOException
+    {
+
         rs.high ();
         
         spi = SpiFactory.getInstance (SpiChannel.CS0, 1000000);
@@ -235,8 +267,10 @@ public class ST7036
         }
     }
     
+    /** The register select output pin */
     private final GpioPinDigitalOutput rs;
-    private final SpiDevice spi;
+    /** The SPI device */
+    private SpiDevice spi;
     
     /** Are we using an 8-bit bus? */
     private boolean bus8_;
@@ -253,23 +287,4 @@ public class ST7036
     private static final int COMMAND_DISPLAY_MODE = 0b00001000;
     private static final int COMMAND_FUNCTION_SET = 0b00100000;
     private static final int COMMAND_BIAS         = 0b00010100;
-    private static final int COMMAND_SCROLL = 0b00010000;
-    private static final int COMMAND_DOUBLE = 0b00010000;
-
-    private static final int TOP = 1;
-    private static final int BOTTOM = 0;
-
-    public static void main (String args[]) throws IOException
-    {
-        SN3218 leds = new SN3218 (Pi2C.useBus ());
-        
-        for (int i = 0; i < 3; ++i)
-            leds.set(i, 62, 64, 64);
-        
-        leds.update ();
-        
-        ST7036 lcd = new ST7036 (RaspiPin.GPIO_06);
-        
-        lcd.write ("Arse! This is a test to see what happens with wraparound.");
-    }
 }
